@@ -20,6 +20,15 @@
   background:var(--lime);border:0;padding:10px;cursor:pointer;transform:skewX(-8deg)}
 .save:disabled{opacity:.6}
 .chip.foto{width:100%;grid-column:auto}
+.pres{width:100%;max-width:310px;margin-top:26px}
+.pres .pt{font-family:'Bebas Neue';font-size:26px;letter-spacing:.06em;text-align:center;margin-bottom:8px}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pbtn{font-family:'Bebas Neue';font-size:26px;letter-spacing:.06em;text-transform:uppercase;color:#7f95ab;
+  padding:10px 6px;background:#0a1426;border:2px solid rgba(255,255,255,.15);cursor:pointer;transform:skewX(-8deg)}
+.pbtn.on{background:var(--lime);color:#001018;border-color:var(--lime)}
+.pbtn.no.on{background:#ff6b6b;border-color:#ff6b6b;color:#1a0505}
+#presMsg{text-align:center;margin-top:8px;min-height:20px;letter-spacing:.06em;color:var(--lime)}
+#presMsg.err{color:#ff6b6b}
 #fotoStatus{text-align:center;margin-top:8px;min-height:20px;font-size:14px;letter-spacing:.05em;color:var(--lime)}
 #fotoStatus.err{color:#ff6b6b}
 #ok{text-align:center;margin-top:10px;height:20px;letter-spacing:.1em;color:var(--lime)}
@@ -68,6 +77,14 @@ function trocarJogador() {
     main.innerHTML = `
       <div class="hello">Fala, <span>${esc(nomeExibido(p))}</span>!</div>
       ${cardHTML(p)}
+      <div class="pres">
+        <div class="pt">Vai jogar a próxima?</div>
+        <div class="pgrid">
+          <button type="button" class="pbtn ${p.vai_jogar ? 'on' : ''}" data-v="1">Vou jogar!</button>
+          <button type="button" class="pbtn no ${p.vai_jogar ? '' : 'on'}" data-v="0">Não vou</button>
+        </div>
+        <div id="presMsg"></div>
+      </div>
       <div class="form">
         <label>Seu vulgo</label>
         <input id="vulgo" maxlength="20" value="${esc(p.vulgo || '')}" placeholder="${esc(p.nome || '')}">
@@ -85,6 +102,15 @@ function trocarJogador() {
       <button class="link" id="trocar">Não sou eu</button>`;
 
     document.getElementById('trocar').onclick = trocarJogador;
+    document.querySelectorAll('.pbtn').forEach(b => b.onclick = async () => {
+      const vai = b.dataset.v === '1', msg = document.getElementById('presMsg');
+      msg.className = ''; msg.textContent = 'Salvando...';
+      const { error } = await sb.from('players').update({ vai_jogar: vai }).eq('id', id);
+      if (error) { msg.className = 'err'; msg.textContent = 'Erro ao salvar. Tente de novo.'; return; }
+      p.vai_jogar = vai;
+      document.querySelectorAll('.pbtn').forEach(x => x.classList.toggle('on', (x.dataset.v === '1') === vai));
+      msg.textContent = vai ? 'Confirmado! Te vejo na areia 🏐' : 'Beleza, anotado.';
+    });
     document.querySelectorAll('.chip').forEach(b => b.onclick = () => {
       carac = b.dataset.c;
       document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b));

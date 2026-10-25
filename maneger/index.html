@@ -228,6 +228,20 @@ function mostrar() {
   if (error) { document.getElementById('main').innerHTML = '<div class="msg">Erro ao carregar. Tente de novo.</div>'; return; }
   jogadores = ordenar(data);
   desenhar();
+
+  // traz as confirmações feitas pelos jogadores quando você volta para a página
+  async function atualizarPresenca() {
+    const digitando = ['nVulgo', 'nNome'].some(i => (document.getElementById(i) || {}).value) || (document.activeElement || {}).tagName === 'INPUT';
+    if (editando || digitando) return;
+    const { data: d } = await sb.from('players').select('id,vai_jogar');
+    if (!d) return;
+    const mapa = Object.fromEntries(d.map(x => [x.id, x.vai_jogar]));
+    let mudou = false;
+    jogadores.forEach(p => { if (p.id in mapa && p.vai_jogar !== mapa[p.id]) { p.vai_jogar = mapa[p.id]; mudou = true; } });
+    if (mudou) desenhar(); // mantém o sorteio na tela; é só sortear de novo se quiser incluir a mudança
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) atualizarPresenca(); });
+  setInterval(() => { if (!document.hidden) atualizarPresenca(); }, 20000);
 })();
 </script>
 </body>
