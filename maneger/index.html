@@ -35,6 +35,15 @@ h2 span{color:var(--lime)}
 .team .nm{font-family:'Bebas Neue';font-size:21px;letter-spacing:.05em;text-transform:uppercase;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .team .ps{font-size:12px;letter-spacing:.1em;color:#9fb3c8}
 .note{font-size:12px;color:#9fb3c8;letter-spacing:.05em;margin-top:10px}
+.cad{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:8px}
+.cad input,.crow input{min-width:0;font-family:'Bebas Neue';font-size:20px;letter-spacing:.05em;color:#eaffff;background:#0a1f3d;border:2px solid rgba(0,229,255,.5);padding:6px 10px;outline:none;text-transform:uppercase}
+.cad input:focus,.crow input:focus{border-color:var(--lime)}
+.cadlist{margin-top:10px}
+.crow{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+.crow .cn{flex:1;min-width:0;font-family:'Bebas Neue';font-size:22px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow .cn small{display:block;font-family:'Oswald';font-size:11px;letter-spacing:.12em;color:#9fb3c8}
+.crow input{flex:1}
+.mini.red{color:#ff6b6b;border-color:rgba(255,107,107,.5)}
 </style>
 </head>
 <body>
@@ -50,7 +59,58 @@ h2 span{color:var(--lime)}
 <script>
 const CORES = ['#00e5ff', '#b6ff00', '#ff9f1c', '#ff4d8d', '#a78bfa', '#2dd4bf', '#facc15', '#f87171'];
 const TIPOS = ['Levantador', 'Atacante', 'Recepção', 'Versátil'];
-let jogadores = [], tamanho = 4, resultado = null;
+let jogadores = [], tamanho = 4, resultado = null, editando = null;
+
+async function recarregar() {
+  const { data, error } = await sb.from('player_stats').select('id,nome,vulgo,foto_url,caracteristica,vai_jogar,total,avaliacoes');
+  if (error) { alert('Erro ao carregar. Tente de novo.'); return; }
+  jogadores = ordenar(data); resultado = null; editando = null; desenhar();
+}
+
+function cadastroHTML() {
+  const bt = (a, id, txt, cls = '') => `<button class="mini ${cls}" data-a="${a}" data-id="${esc(id)}">${txt}</button>`;
+  return `<h2>CADASTRO DE <span>JOGADORES</span></h2>
+    <div class="sub">Adicione, edite ou remova jogadores.</div>
+    <div class="cad"><input id="nVulgo" maxlength="20" placeholder="Vulgo"><input id="nNome" maxlength="40" placeholder="Nome"><button class="mini" id="add">Adicionar</button></div>
+    <div class="note" id="cmsg"></div>
+    <div class="cadlist" id="cadlist">${jogadores.map(p => p.id === editando
+      ? `<div class="crow"><input class="ev" maxlength="20" value="${esc(p.vulgo || '')}" placeholder="Vulgo"><input class="en" maxlength="40" value="${esc(p.nome || '')}" placeholder="Nome">${bt('salvar', p.id, 'Salvar')}${bt('cancelar', p.id, '×')}</div>`
+      : `<div class="crow"><span class="cn">${esc(nomeExibido(p))}<small>${esc(p.vulgo && p.nome ? p.nome : '')}</small></span>${bt('editar', p.id, 'Editar')}${bt('remover', p.id, 'Remover', 'red')}</div>`).join('')}</div>`;
+}
+
+function ligarCadastro() {
+  const msg = t => { const m = document.getElementById('cmsg'); if (m) m.textContent = t; };
+  document.getElementById('add').onclick = async () => {
+    const vulgo = document.getElementById('nVulgo').value.trim() || null;
+    const nome = document.getElementById('nNome').value.trim() || null;
+    if (!vulgo && !nome) { msg('Preencha o vulgo ou o nome.'); return; }
+    const { error } = await sb.from('players').insert({ vulgo, nome, vai_jogar: false });
+    if (error) { msg('Erro ao adicionar. Tente de novo.'); return; }
+    await recarregar();
+    const m = document.getElementById('cmsg'); if (m) m.textContent = 'Jogador adicionado!';
+  };
+  document.getElementById('cadlist').onclick = async e => {
+    const b = e.target.closest('button[data-a]'); if (!b) return;
+    const p = jogadores.find(x => x.id === b.dataset.id), a = b.dataset.a;
+    if (a === 'editar') { editando = p.id; desenhar(); }
+    else if (a === 'cancelar') { editando = null; desenhar(); }
+    else if (a === 'salvar') {
+      const row = b.closest('.crow');
+      const vulgo = row.querySelector('.ev').value.trim() || null, nome = row.querySelector('.en').value.trim() || null;
+      if (!vulgo && !nome) { msg('Preencha o vulgo ou o nome.'); return; }
+      const { error } = await sb.from('players').update({ vulgo, nome }).eq('id', p.id);
+      if (error) { msg('Erro ao salvar. Tente de novo.'); return; }
+      await recarregar();
+    } else if (a === 'remover') {
+      if (!confirm(`Remover ${nomeExibido(p)}? As notas que ele deu e recebeu também serão apagadas.`)) return;
+      const { error } = await sb.from('players').delete().eq('id', p.id);
+      if (error) { msg('Erro ao remover. Tente de novo.'); return; }
+      const m = (p.foto_url || '').match(/\/fotos\/([^?]+)/);
+      if (m) await sb.storage.from('fotos').remove([decodeURIComponent(m[1])]);
+      await recarregar();
+    }
+  };
+}
 
 const ovrDe = t => (t == null ? null : Math.round(Number(t) / 5 * 19.8));
 const embaralhar = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -115,7 +175,8 @@ function desenhar() {
       <small>${n >= 4 ? `${k} times` : 'poucos jogadores'}</small></div>
 
     <button class="go" id="sortear" ${n < 4 ? 'disabled' : ''}>${resultado ? 'SORTEAR DE NOVO' : 'SORTEAR TIMES'}</button>
-    <div id="res"></div>`;
+    <div id="res"></div>
+    ${cadastroHTML()}`;
 
   document.getElementById('chips').onclick = async e => {
     const b = e.target.closest('.ck'); if (!b) return;
@@ -135,6 +196,7 @@ function desenhar() {
   document.getElementById('menos').onclick = () => { tamanho = Math.max(2, tamanho - 1); resultado = null; desenhar(); };
   document.getElementById('mais').onclick = () => { tamanho = Math.min(12, tamanho + 1); resultado = null; desenhar(); };
   document.getElementById('sortear').onclick = () => { resultado = sortear(vao(), tamanho); mostrar(); };
+  ligarCadastro();
   if (resultado) mostrar();
 }
 
