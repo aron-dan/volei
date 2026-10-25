@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vôlei • Avaliar</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.wrap{padding:18px 20px;max-width:520px;margin:0 auto}
+.back{display:inline-block;margin:14px 20px 0;color:var(--neon);font-size:13px;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;background:none;border:0;font-family:'Oswald';cursor:pointer}
+.toast{text-align:center;color:var(--lime);letter-spacing:.1em;min-height:22px;margin-top:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.pl{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;color:#eaffff;
+  background:linear-gradient(170deg,#0f3a66,#0a1f3d);border:2px solid rgba(0,229,255,.4);cursor:pointer;font-family:'Bebas Neue';font-size:22px;letter-spacing:.05em;text-transform:uppercase}
+.pl:active{border-color:var(--lime)}
+.pl.done{border-color:var(--lime)}
+.pl .ph{width:72px;height:72px;border-radius:50%;overflow:hidden;background:#05101f center top/cover;border:2px solid rgba(0,229,255,.6);color:#6fa3c9}
+.pl .ph svg{width:100%;height:100%}
+.pl .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .tk{position:absolute;top:6px;right:8px;color:var(--lime);font-size:18px}
+.who{display:flex;align-items:center;gap:14px;margin:6px 0 14px}
+.who .ph{width:68px;height:68px;border-radius:50%;overflow:hidden;background:#05101f center top/cover;border:2px solid var(--neon);color:#6fa3c9}
+.who .ph svg{width:100%;height:100%}
+.who h2{font-family:'Bebas Neue';font-weight:400;font-size:34px;letter-spacing:.05em;text-transform:uppercase}
+.sk{margin:16px 0}
+.sk-t{font-size:12px;letter-spacing:.3em;color:var(--lime);text-transform:uppercase;margin-bottom:6px}
+.nums{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.n{font-family:'Bebas Neue';font-size:28px;color:#eaffff;background:#0a1f3d;border:2px solid rgba(0,229,255,.35);padding:6px 0;cursor:pointer}
+.n.on{background:var(--neon);color:#001018;border-color:var(--neon)}
+.desc{min-height:34px;margin-top:6px;font-size:13px;line-height:1.3;color:#9fb3c8}
+.hint{font-size:12px;letter-spacing:.08em;color:#9fb3c8;margin-bottom:8px}
+.save{width:100%;margin-top:18px;font-family:'Bebas Neue';font-size:28px;letter-spacing:.08em;color:#001018;background:var(--lime);border:0;padding:10px;cursor:pointer;transform:skewX(-8deg)}
+.save:disabled{opacity:.6}
+.err{color:#ff6b6b;text-align:center;margin-top:10px;letter-spacing:.05em}
+</style>
+</head>
+<body>
+<header>
+  <small>Vôlei de areia</small>
+  <h1>AVALIAR A <span>GALERA</span></h1>
+</header>
+<div class="bar"></div>
+<a class="back" href="../">← Minha carta</a>
+<div class="wrap" id="main"><div class="msg">Carregando...</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/app.js?v=6"></script>
+<script>
+const HAB = [['ataque', 'Ataque'], ['recepcao', 'Recepção'], ['levantamento', 'Levantamento'], ['saque', 'Saque'], ['mobilidade', 'Mobilidade']];
+const DESC = {
+  ataque: {
+    1: 'Dificuldade física e técnica (não salta, apenas passa de graça ou erra muito na rede)',
+    2: 'Abaixo da média (pouca força, técnica instável)',
+    3: 'Regular / OK (coloca a bola em jogo com segurança, ataca bolas fáceis)',
+    4: 'Bom tecnicamente (boa impulsão ou visão de quadra e largadas precisas)',
+    5: 'Excelente (força, impulsão alta, define pontos difíceis e decide bolas na rede)' },
+  recepcao: {
+    1: 'Muito fraco (dificuldade de posicionamento, bola fura com frequência)',
+    2: 'Abaixo da média (passe sai quebrado na maioria dos saques fortes)',
+    3: 'Regular / OK (sustenta saques médios e direciona para a área de levantamento)',
+    4: 'Seguro (boa leitura de trajetória, recupera bolas difíceis no fundo)',
+    5: 'Parede / Elite (domina o fundo, passe na mão mesmo sob pressão)' },
+  levantamento: {
+    1: 'Não consegue armar (apenas empurra a bola de manchete sem precisão)',
+    2: 'Abaixo da média (frequente condução, bola muito baixa ou grudada na rede)',
+    3: 'Regular / OK (levanta a bola alta no centro ou na rede para o atacante virar)',
+    4: 'Muito bom (toque limpo, coloca a bola macia e ajustada na altura certa)',
+    5: 'Armador nato (distribui bem de toque ou manchete refinada em qualquer posição)' },
+  saque: {
+    1: 'Grande dificuldade: erra grande parte dos saques na rede/fora ou entrega bola lenta e sem direção',
+    2: 'Abaixo da média: saque fraco, só para iniciar o rali, sem causar dificuldade',
+    3: 'OK / Regular: saque seguro; raramente erra e coloca a bola dentro da área desejada',
+    4: 'Bom: saque firme, flutuante ou colocado em áreas de conflito entre os recebedores',
+    5: 'Excelente: saque agressivo e decisivo; velocidade, peso ou variação que gera aces frequentes' },
+  mobilidade: {
+    1: 'Grande dificuldade: jogo muito estático; dificuldade em arrancar na areia fofa e o fôlego acaba rápido',
+    2: 'Abaixo da média: deslocamento lento; quase sempre chega atrasado nas bolas longas ou largadas',
+    3: 'OK / Regular: movimentação padrão; acompanha o ritmo normal de jogo',
+    4: 'Rápido e ágil: bom preparo físico; arranca bem na areia, antecipa jogadas e cobre espaços vazios',
+    5: 'Excelente: cobertura de quadra excepcional; fôlego constante, busca largadas difíceis e mergulha na areia' },
+};
+
+(async () => {
+  const main = document.getElementById('main');
+  let me = null;
+  try { me = localStorage.getItem('jogador_id'); } catch (_) {}
+  if (!me) { location.replace('../../'); return; }
+
+  const [pl, mine] = await Promise.all([
+    sb.from('players').select('id,nome,vulgo,foto_url'),
+    sb.from('ratings').select('*').eq('avaliador_id', me),
+  ]);
+  if (pl.error || mine.error) { main.innerHTML = '<div class="msg">Erro ao carregar. Tente de novo.</div>'; return; }
+
+  const outros = pl.data.filter(x => x.id !== me)
+    .sort((a, b) => nomeExibido(a).localeCompare(nomeExibido(b), 'pt-BR'));
+  const minhas = Object.fromEntries(mine.data.map(r => [r.avaliado_id, r]));
+  const foto = p => `<div class="ph" ${p.foto_url ? `style="background-image:url('${esc(p.foto_url)}')"` : ''}>${p.foto_url ? '' : SIL}</div>`;
+  const feita = r => r && HAB.some(([k]) => r[k] != null);
+
+  function lista(msg) {
+    main.innerHTML = `<div class="hint">Toque em um jogador para dar suas notas. As notas individuais não aparecem para ninguém, só a média.</div>
+      <div class="toast">${esc(msg || '')}</div>
+      <div class="grid">${outros.map(p => `<button class="pl ${feita(minhas[p.id]) ? 'done' : ''}" data-id="${esc(p.id)}">
+        ${feita(minhas[p.id]) ? '<span class="tk">✓</span>' : ''}${foto(p)}<div class="nm">${esc(nomeExibido(p))}</div></button>`).join('')}</div>`;
+    main.querySelector('.grid').onclick = e => {
+      const b = e.target.closest('.pl'); if (b) painel(b.dataset.id);
+    };
+  }
+
+  function painel(pid) {
+    const p = outros.find(x => x.id === pid);
+    const nota = Object.fromEntries(HAB.map(([k]) => [k, minhas[pid]?.[k] ?? null]));
+    main.innerHTML = `<button class="back" style="margin:0 0 10px" id="voltar">← Voltar à lista</button>
+      <div class="who">${foto(p)}<h2>${esc(nomeExibido(p))}</h2></div>
+      <div class="hint">Se não souber avaliar alguma habilidade, deixe em branco.</div>
+      ${HAB.map(([k, nome]) => `<div class="sk"><div class="sk-t">${nome}</div>
+        <div class="nums">${[1, 2, 3, 4, 5].map(n => `<button class="n ${nota[k] === n ? 'on' : ''}" data-k="${k}" data-n="${n}">${n}</button>`).join('')}</div>
+        <div class="desc" id="d-${k}">${nota[k] ? esc(DESC[k][nota[k]]) : ''}</div></div>`).join('')}
+      <button class="save" id="salvar">Salvar avaliação</button><div class="err" id="err"></div>`;
+
+    document.getElementById('voltar').onclick = () => lista();
+    main.onclick = e => {
+      const b = e.target.closest('.n'); if (!b) return;
+      const k = b.dataset.k, n = Number(b.dataset.n);
+      nota[k] = nota[k] === n ? null : n;
+      b.parentNode.querySelectorAll('.n').forEach(x => x.classList.toggle('on', Number(x.dataset.n) === nota[k]));
+      document.getElementById('d-' + k).textContent = nota[k] ? DESC[k][nota[k]] : '';
+    };
+    document.getElementById('salvar').onclick = async () => {
+      const err = document.getElementById('err'), btn = document.getElementById('salvar');
+      if (HAB.every(([k]) => nota[k] == null)) { err.textContent = 'Dê pelo menos uma nota.'; return; }
+      btn.disabled = true; err.textContent = '';
+      const row = { avaliador_id: me, avaliado_id: pid, ...nota };
+      const { error } = await sb.from('ratings').upsert(row, { onConflict: 'avaliador_id,avaliado_id' });
+      if (error) { btn.disabled = false; err.textContent = 'Erro ao salvar. Tente de novo.'; console.error(error); return; }
+      minhas[pid] = row;
+      main.onclick = null;
+      lista('Avaliação salva!');
+    };
+  }
+
+  lista();
+})();
+</script>
+</body>
+</html>
