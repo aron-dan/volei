@@ -67,3 +67,8 @@ header h1 span{color:var(--neon)}
 .cmi{width:270px;height:400px;transform:scale(var(--s));transform-origin:0 0}
 .cm .slot{filter:none}
 .cm .inner::after{display:none}
+
+/* lista de cartas (escolher jogador) */
+.list.cards{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));justify-items:center;gap:8px}
+.pick.cd{transform:none;border:0;background:none;padding:0}
+.pick.cd:active{box-shadow:none;filter:brightness(1.35)}
