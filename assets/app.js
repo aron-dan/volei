@@ -40,3 +40,8 @@ function cardHTML(p) {
     <div class="stats">${Object.entries(v).map(([k, x]) => `<div class="st"><b>${x ?? '--'}</b><span>${k}</span></div>`).join('')}</div>
   </div></div></div>`;
 }
+
+// carta reduzida (para listas): s = escala (1 = tamanho real, 270x400)
+function cardMini(p, s = .55) {
+  return `<div class="cm" style="--s:${s}"><div class="cmi">${cardHTML(p)}</div></div>`;
+}

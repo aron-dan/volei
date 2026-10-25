@@ -5,20 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vôlei • Avaliar</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="../../assets/style.css?v=8">
 <style>
 .wrap{padding:18px 20px;max-width:520px;margin:0 auto}
 .back{display:inline-block;margin:14px 20px 0;color:var(--neon);font-size:13px;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;background:none;border:0;font-family:'Oswald';cursor:pointer}
 .toast{text-align:center;color:var(--lime);letter-spacing:.1em;min-height:22px;margin-top:10px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
-.pl{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;color:#eaffff;
+.pl{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 4px 6px;color:#eaffff;
   background:linear-gradient(170deg,#0f3a66,#0a1f3d);border:2px solid rgba(0,229,255,.4);cursor:pointer;font-family:'Bebas Neue';font-size:22px;letter-spacing:.05em;text-transform:uppercase}
 .pl:active{border-color:var(--lime)}
 .pl.done{border-color:var(--lime)}
 .pl .ph{width:72px;height:72px;border-radius:50%;overflow:hidden;background:#05101f center top/cover;border:2px solid rgba(0,229,255,.6);color:#6fa3c9}
 .pl .ph svg{width:100%;height:100%}
 .pl .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pl .tk{position:absolute;top:6px;right:8px;color:var(--lime);font-size:18px}
+.pl .tk{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:3;background:var(--lime);color:#001018;font-family:'Oswald';font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px}
+.whocard{display:flex;justify-content:center;margin:6px 0 10px}
 .who{display:flex;align-items:center;gap:14px;margin:6px 0 14px}
 .who .ph{width:68px;height:68px;border-radius:50%;overflow:hidden;background:#05101f center top/cover;border:2px solid var(--neon);color:#6fa3c9}
 .who .ph svg{width:100%;height:100%}
@@ -45,7 +46,7 @@
 <div class="wrap" id="main"><div class="msg">Carregando...</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../assets/app.js?v=7"></script>
+<script src="../../assets/app.js?v=8"></script>
 <script>
 const HAB = [['ataque', 'Ataque'], ['recepcao', 'Recepção'], ['levantamento', 'Levantamento'], ['saque', 'Saque'], ['mobilidade', 'Mobilidade']];
 const DESC = {
@@ -88,7 +89,7 @@ const DESC = {
   document.querySelector('a.back').href = '../?id=' + encodeURIComponent(me);
 
   const [pl, mine] = await Promise.all([
-    sb.from('players').select('id,nome,vulgo,foto_url'),
+    sb.from('player_stats').select('*'),
     sb.from('ratings').select('*').eq('avaliador_id', me),
   ]);
   if (pl.error || mine.error) { main.innerHTML = '<div class="msg">Erro ao carregar. Tente de novo.</div>'; return; }
@@ -103,7 +104,7 @@ const DESC = {
     main.innerHTML = `<div class="hint">Toque em um jogador para dar suas notas. As notas individuais não aparecem para ninguém, só a média.</div>
       <div class="toast">${esc(msg || '')}</div>
       <div class="grid">${outros.map(p => `<button class="pl ${feita(minhas[p.id]) ? 'done' : ''}" data-id="${esc(p.id)}">
-        ${feita(minhas[p.id]) ? '<span class="tk">✓</span>' : ''}${foto(p)}<div class="nm">${esc(nomeExibido(p))}</div></button>`).join('')}</div>`;
+        ${feita(minhas[p.id]) ? '<span class="tk">✓ avaliado</span>' : ''}${cardMini(p, .55)}</button>`).join('')}</div>`;
     main.querySelector('.grid').onclick = e => {
       const b = e.target.closest('.pl'); if (b) painel(b.dataset.id);
     };
@@ -113,7 +114,7 @@ const DESC = {
     const p = outros.find(x => x.id === pid);
     const nota = Object.fromEntries(HAB.map(([k]) => [k, minhas[pid]?.[k] ?? null]));
     main.innerHTML = `<button class="back" style="margin:0 0 10px" id="voltar">← Voltar à lista</button>
-      <div class="who">${foto(p)}<h2>${esc(nomeExibido(p))}</h2></div>
+      <div class="whocard">${cardMini(p, .62)}</div>
       <div class="hint">Se não souber avaliar alguma habilidade, deixe em branco.</div>
       ${HAB.map(([k, nome]) => `<div class="sk"><div class="sk-t">${nome}</div>
         <div class="nums">${[1, 2, 3, 4, 5].map(n => `<button class="n ${nota[k] === n ? 'on' : ''}" data-k="${k}" data-n="${n}">${n}</button>`).join('')}</div>
