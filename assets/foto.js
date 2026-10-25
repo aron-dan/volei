@@ -1,7 +1,7 @@
 // Recorte manual da foto (arrastar e dar zoom) + envio para o Supabase Storage
 const FOTO_W = 340, FOTO_H = 380;      // tamanho final (mesma proporção do espaço da foto na carta)
 const FR_W = 255, FR_H = 285;          // moldura na tela
-const ZOOM_MAX = 4;
+const ZOOM_MAX = 6;
 
 async function carregarImagem(file) {
   const bmp = await createImageBitmap(file); // respeita a rotação do celular
@@ -19,7 +19,7 @@ const CROP_CSS = `
 #crop p{font-size:13px;letter-spacing:.1em;color:#9fb3c8;text-align:center}
 #crop .fr{position:relative;width:${FR_W}px;height:${FR_H}px;border:3px solid #00e5ff;box-shadow:0 0 22px rgba(0,229,255,.5);touch-action:none;background:#000}
 #crop canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
-#crop .guia{position:absolute;left:50%;top:10%;width:46%;height:46%;transform:translateX(-50%);border:2px dashed rgba(182,255,0,.8);border-radius:50%;pointer-events:none}
+#crop .guia{position:absolute;left:50%;top:3%;width:76%;height:80%;transform:translateX(-50%);border:2px dashed rgba(182,255,0,.8);border-radius:50%;pointer-events:none}
 #crop input[type=range]{width:${FR_W}px;accent-color:#b6ff00}
 #crop .bt{display:flex;gap:12px;width:${FR_W}px}
 #crop button{flex:1;font-family:'Bebas Neue';font-size:24px;letter-spacing:.06em;padding:9px;border:0;cursor:pointer}
@@ -37,7 +37,7 @@ async function abrirRecorte(file) {
   ov.id = 'crop';
   ov.innerHTML = `<style>${CROP_CSS}</style>
     <h2>Ajuste sua foto</h2>
-    <p>Arraste para mover e use o zoom.<br>Coloque o rosto dentro do círculo.</p>
+    <p>Arraste para mover e use o zoom.<br>Encha o círculo com o seu rosto.</p>
     <div class="fr"><canvas id="cc" width="${FR_W * 2}" height="${FR_H * 2}"></canvas><div class="guia"></div></div>
     <input type="range" id="cz" min="1" max="${ZOOM_MAX}" step="0.01" value="1">
     <div class="bt"><button class="no" id="cn">Cancelar</button><button class="ok" id="cok">Usar foto</button></div>`;
@@ -105,8 +105,8 @@ async function abrirRecorte(file) {
 }
 
 async function enviarFoto(sb, id, blob) {
-  const path = `${id}.jpg`;
-  const up = await sb.storage.from('fotos').upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' });
+  const path = `${id}-${Date.now()}.jpg`; // nome novo a cada envio (evita sobrescrever)
+  const up = await sb.storage.from('fotos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
   if (up.error) throw up.error;
   const url = sb.storage.from('fotos').getPublicUrl(path).data.publicUrl + '?v=' + Date.now();
   const { error } = await sb.from('players').update({ foto_url: url }).eq('id', id);
