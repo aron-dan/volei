@@ -148,7 +148,16 @@ function mostrar() {
       t.map(p => `<li><div class="ph" ${p.foto_url ? `style="background-image:url('${esc(p.foto_url)}')"` : ''}>${p.foto_url ? '' : SIL}</div>
         <span class="nm">${esc(nomeExibido(p))}</span><span class="ps">${esc((POS[p.caracteristica] || ''))}</span></li>`).join('')}</ul></div>`;
   }).join('')}</div>
-  <div class="note">Quem ainda não foi avaliado entra com a nota média do grupo.</div>`;
+  <div class="note">Quem ainda não foi avaliado entra com a nota média do grupo.</div>
+  <button class="go" id="publicar">PUBLICAR PARA A GALERA</button><div class="note" id="pubmsg"></div>`;
+  document.getElementById('publicar').onclick = async () => {
+    const b = document.getElementById('publicar'), m = document.getElementById('pubmsg');
+    b.disabled = true; m.textContent = 'Publicando...';
+    const times = resultado.map(t => t.map(p => p.id));
+    const { error } = await sb.from('partida').update({ times, atualizado: new Date().toISOString() }).eq('id', 1);
+    b.disabled = false;
+    m.textContent = error ? 'Erro ao publicar. Tente de novo.' : 'Publicado! Os jogadores já veem os times na página "Próxima partida".';
+  };
   res.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vôlei • Próxima partida</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.wrap{padding:8px 20px 40px;max-width:760px;margin:0 auto}
+.back{display:inline-block;margin:14px 20px 0;color:var(--neon);font-size:13px;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;font-family:'Oswald'}
+.voce{margin:20px 0 4px;text-align:center;font-family:'Bebas Neue';font-size:30px;letter-spacing:.06em}
+.voce span{color:var(--lime)}
+.upd{text-align:center;font-size:12px;letter-spacing:.1em;color:#9fb3c8;margin-bottom:6px}
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:16px}
+.team{position:relative;background:linear-gradient(170deg,#0f3a66,#0a1f3d);border-left:6px solid var(--c);padding:12px 14px}
+.team.meu{box-shadow:0 0 0 2px var(--c),0 0 22px color-mix(in srgb,var(--c) 55%,transparent)}
+.team h3{font-family:'Bebas Neue';font-weight:400;font-size:28px;letter-spacing:.06em;color:var(--c);display:flex;justify-content:space-between;align-items:baseline}
+.team h3 small{font-family:'Oswald';font-size:12px;letter-spacing:.12em;color:#9fb3c8}
+.team ul{list-style:none;margin-top:6px}
+.team li{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.08)}
+.team li.eu .nm{color:var(--lime)}
+.team .ph{width:32px;height:32px;border-radius:50%;flex:none;background:#05101f center top/cover;border:2px solid var(--c);overflow:hidden;color:#6fa3c9}
+.team .ph svg{width:100%;height:100%}
+.team .nm{font-family:'Bebas Neue';font-size:21px;letter-spacing:.05em;text-transform:uppercase;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team .ps{font-size:12px;letter-spacing:.1em;color:#9fb3c8}
+</style>
+</head>
+<body>
+<header>
+  <small>Vôlei de areia</small>
+  <h1>PRÓXIMA <span>PARTIDA</span></h1>
+</header>
+<div class="bar"></div>
+<a class="back" href="../">← Minha carta</a>
+<div class="wrap" id="main"><div class="msg">Carregando...</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/app.js?v=6"></script>
+<script>
+const CORES = ['#00e5ff', '#b6ff00', '#ff9f1c', '#ff4d8d', '#a78bfa', '#2dd4bf', '#facc15', '#f87171'];
+(async () => {
+  const main = document.getElementById('main');
+  let me = null;
+  try { me = localStorage.getItem('jogador_id'); } catch (_) {}
+
+  const [pt, pl] = await Promise.all([
+    sb.from('partida').select('times,atualizado').eq('id', 1).maybeSingle(),
+    sb.from('players').select('id,nome,vulgo,foto_url,caracteristica'),
+  ]);
+  if (pt.error || pl.error) { main.innerHTML = '<div class="msg">Erro ao carregar. Tente de novo.</div>'; return; }
+
+  const times = (pt.data && pt.data.times) || [];
+  if (!times.length) { main.innerHTML = '<div class="msg">Os times ainda não foram sorteados.<br>Volte mais tarde!</div>'; return; }
+
+  const por = Object.fromEntries(pl.data.map(p => [p.id, p]));
+  const meuTime = times.findIndex(t => t.includes(me));
+  const quando = pt.data.atualizado
+    ? new Date(pt.data.atualizado).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : '';
+
+  main.innerHTML = `
+    ${meuTime >= 0 ? `<div class="voce">Você está no <span>TIME ${meuTime + 1}</span></div>` : ''}
+    <div class="upd">${quando ? 'Atualizado em ' + quando : ''}</div>
+    <div class="teams">${times.map((t, i) => `
+      <div class="team ${i === meuTime ? 'meu' : ''}" style="--c:${CORES[i % CORES.length]}">
+        <h3>TIME ${i + 1}<small>${t.length} JOGADORES</small></h3>
+        <ul>${t.map(id => por[id]).filter(Boolean).map(p => `
+          <li class="${p.id === me ? 'eu' : ''}">
+            <div class="ph" ${p.foto_url ? `style="background-image:url('${esc(p.foto_url)}')"` : ''}>${p.foto_url ? '' : SIL}</div>
+            <span class="nm">${esc(nomeExibido(p))}</span><span class="ps">${esc(POS[p.caracteristica] || '')}</span>
+          </li>`).join('')}</ul>
+      </div>`).join('')}</div>`;
+})();
+</script>
+</body>
+</html>
