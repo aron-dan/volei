@@ -1,11 +1,11 @@
 // Recorte manual da foto (arrastar e dar zoom) + envio para o Supabase Storage
 const FOTO_W = 340, FOTO_H = 380;      // tamanho final (mesma proporção do espaço da foto na carta)
 const FR_W = 255, FR_H = 285;          // moldura na tela
-const ZOOM_MAX = 6;
+const ZOOM_MAX = 12;
 
 async function carregarImagem(file) {
   const bmp = await createImageBitmap(file); // respeita a rotação do celular
-  const s = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const s = Math.min(1, 3200 / Math.max(bmp.width, bmp.height));
   const c = document.createElement('canvas');
   c.width = Math.round(bmp.width * s);
   c.height = Math.round(bmp.height * s);
@@ -39,7 +39,7 @@ async function abrirRecorte(file) {
     <h2>Ajuste sua foto</h2>
     <p>Arraste para mover e use o zoom.<br>Encha o círculo com o seu rosto.</p>
     <div class="fr"><canvas id="cc" width="${FR_W * 2}" height="${FR_H * 2}"></canvas><div class="guia"></div></div>
-    <input type="range" id="cz" min="1" max="${ZOOM_MAX}" step="0.01" value="1">
+    <input type="range" id="cz" min="0" max="100" step="0.1" value="0">
     <div class="bt"><button class="no" id="cn">Cancelar</button><button class="ok" id="cok">Usar foto</button></div>`;
   document.body.appendChild(ov);
 
@@ -47,6 +47,11 @@ async function abrirRecorte(file) {
   const ctx = cv.getContext('2d');
   const zr = ov.querySelector('#cz');
 
+  // zoom em escala exponencial: o controle fica suave perto e longe
+  const setZoom = nz => {
+    z = Math.min(ZOOM_MAX, Math.max(1, nz));
+    zr.value = 100 * Math.log(z) / Math.log(ZOOM_MAX);
+  };
   const clamp = () => {
     const w = src.width * base * z, h = src.height * base * z;
     cx = Math.min(w / 2, Math.max(FR_W - w / 2, cx));
@@ -82,15 +87,15 @@ async function abrirRecorte(file) {
     } else {
       p.x = e.clientX; p.y = e.clientY;
       const d = dist();
-      if (ultDist) { z = Math.min(ZOOM_MAX, Math.max(1, z * d / ultDist)); zr.value = z; }
+      if (ultDist) setZoom(z * d / ultDist);
       ultDist = d;
     }
     redesenhar();
   };
   const soltar = e => { pts.delete(e.pointerId); ultDist = 0; };
   cv.onpointerup = soltar; cv.onpointercancel = soltar;
-  cv.onwheel = e => { e.preventDefault(); z = Math.min(ZOOM_MAX, Math.max(1, z * (e.deltaY < 0 ? 1.08 : 0.93))); zr.value = z; redesenhar(); };
-  zr.oninput = () => { z = parseFloat(zr.value); redesenhar(); };
+  cv.onwheel = e => { e.preventDefault(); setZoom(z * (e.deltaY < 0 ? 1.08 : 0.93)); redesenhar(); };
+  zr.oninput = () => { z = Math.pow(ZOOM_MAX, parseFloat(zr.value) / 100); redesenhar(); };
 
   return new Promise(resolve => {
     const fechar = v => { ov.remove(); resolve(v); };
@@ -104,11 +109,15 @@ async function abrirRecorte(file) {
   });
 }
 
-async function enviarFoto(sb, id, blob) {
+const caminhoFoto = url => { const m = (url || '').match(/\/fotos\/([^?]+)/); return m ? decodeURIComponent(m[1]) : null; };
+
+async function enviarFoto(sb, id, blob, fotoAntiga) {
   const path = `${id}-${Date.now()}.jpg`; // nome novo a cada envio (evita sobrescrever)
   const up = await sb.storage.from('fotos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
   if (up.error) throw up.error;
   const url = sb.storage.from('fotos').getPublicUrl(path).data.publicUrl + '?v=' + Date.now();
   const { error } = await sb.from('players').update({ foto_url: url }).eq('id', id);
   if (error) throw error;
+  const antigo = caminhoFoto(fotoAntiga);
+  if (antigo && antigo !== path) await sb.storage.from('fotos').remove([antigo]); // apaga a foto antiga
 }
