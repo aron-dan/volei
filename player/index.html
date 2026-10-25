@@ -35,8 +35,8 @@
 <div class="center" id="main"><div class="msg">Carregando...</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/app.js"></script>
-<script src="../assets/foto.js"></script>
+<script src="../assets/app.js?v=4"></script>
+<script src="../assets/foto.js?v=4"></script>
 <script>
 const CARACTERISTICAS = ['Atacante', 'Levantador', 'Versátil', 'Recepção'];
 
@@ -107,7 +107,7 @@ function trocarJogador() {
         document.getElementById('fotoStatus').textContent = 'Foto salva!';
       } catch (e) {
         console.error(e);
-        fs.className = 'err'; fs.textContent = 'Erro com a foto. Tente outra.';
+        fs.className = 'err'; fs.textContent = 'Erro com a foto: ' + ((e && (e.message || e.error_description)) || e);
       }
     };
   }
