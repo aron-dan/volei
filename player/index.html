@@ -19,6 +19,9 @@
 .save{width:100%;margin-top:22px;font-family:'Bebas Neue';font-size:28px;letter-spacing:.08em;color:#001018;
   background:var(--lime);border:0;padding:10px;cursor:pointer;transform:skewX(-8deg)}
 .save:disabled{opacity:.6}
+.chip.foto{width:100%;grid-column:auto}
+#fotoStatus{text-align:center;margin-top:8px;min-height:20px;font-size:14px;letter-spacing:.05em;color:var(--lime)}
+#fotoStatus.err{color:#ff6b6b}
 #ok{text-align:center;margin-top:10px;height:20px;letter-spacing:.1em;color:var(--lime)}
 #ok.err{color:#ff6b6b}
 </style>
@@ -33,6 +36,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../assets/app.js"></script>
+<script src="../assets/foto.js"></script>
 <script>
 const CARACTERISTICAS = ['Atacante', 'Levantador', 'Versátil', 'Recepção'];
 
@@ -70,6 +74,10 @@ function trocarJogador() {
         <input id="vulgo" maxlength="20" value="${esc(p.vulgo || '')}" placeholder="${esc(p.nome || '')}">
         <label>Sua característica</label>
         <div class="chips">${CARACTERISTICAS.map(c => `<button type="button" class="chip ${c === carac ? 'on' : ''}" data-c="${c}">${c}</button>`).join('')}</div>
+        <label>Sua foto</label>
+        <input type="file" id="foto" accept="image/*" hidden>
+        <button type="button" class="chip foto" id="fotoBtn">${p.foto_url ? 'Trocar foto' : 'Escolher foto'}</button>
+        <div id="fotoStatus"></div>
         <button class="save" id="salvar">Salvar</button>
         <div id="ok"></div>
       </div>
@@ -81,6 +89,27 @@ function trocarJogador() {
       document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b));
     });
     document.getElementById('salvar').onclick = salvar;
+
+    const fi = document.getElementById('foto');
+    document.getElementById('fotoBtn').onclick = () => fi.click();
+    fi.onchange = async () => {
+      const f = fi.files[0]; if (!f) return;
+      const fs = document.getElementById('fotoStatus');
+      fs.className = ''; fs.textContent = 'Procurando seu rosto...';
+      try {
+        const r = await recortarFoto(f);
+        fs.textContent = 'Enviando...';
+        await enviarFoto(sb, id, r.blob);
+        p = (await carregar()) || p;
+        desenhar();
+        document.getElementById('fotoStatus').textContent = r.achou
+          ? 'Foto salva!'
+          : 'Não achei rosto, centralizei a foto. Tente outra se não ficou boa.';
+      } catch (e) {
+        console.error(e);
+        fs.className = 'err'; fs.textContent = 'Erro com a foto. Tente outra.';
+      }
+    };
   }
 
   async function salvar() {
