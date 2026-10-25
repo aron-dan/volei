@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vôlei • Gestão</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.wrap{padding:8px 20px 40px;max-width:760px;margin:0 auto}
+h2{font-family:'Bebas Neue';font-weight:400;font-size:28px;letter-spacing:.06em;margin:26px 0 4px}
+h2 span{color:var(--lime)}
+.sub{font-size:13px;letter-spacing:.08em;color:#9fb3c8;margin-bottom:10px}
+.row2{display:flex;gap:10px;margin:8px 0 12px}
+.mini{font-family:'Oswald';font-weight:700;font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--neon);
+  background:none;border:2px solid rgba(0,229,255,.5);padding:7px 12px;cursor:pointer}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.ck{font-family:'Bebas Neue';font-size:21px;letter-spacing:.05em;text-transform:uppercase;color:#7f95ab;
+  background:#0a1426;border:2px solid rgba(255,255,255,.12);padding:9px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ck.on{color:#001018;background:var(--lime);border-color:var(--lime)}
+.step{display:flex;align-items:center;gap:16px}
+.step button{width:48px;height:48px;font-family:'Bebas Neue';font-size:30px;color:#eaffff;background:#0a1f3d;border:2px solid rgba(0,229,255,.5);cursor:pointer}
+.step b{font-family:'Bebas Neue';font-weight:400;font-size:48px;min-width:50px;text-align:center}
+.step small{color:#9fb3c8;letter-spacing:.08em;font-size:13px}
+.go{width:100%;margin-top:22px;font-family:'Bebas Neue';font-size:32px;letter-spacing:.08em;color:#001018;background:var(--lime);border:0;padding:12px;cursor:pointer;transform:skewX(-8deg)}
+.go:disabled{opacity:.5}
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:16px}
+.team{background:linear-gradient(170deg,#0f3a66,#0a1f3d);border-left:6px solid var(--c);padding:12px 14px}
+.team h3{font-family:'Bebas Neue';font-weight:400;font-size:28px;letter-spacing:.06em;color:var(--c);display:flex;justify-content:space-between;align-items:baseline}
+.team h3 small{font-family:'Oswald';font-size:12px;letter-spacing:.12em;color:#9fb3c8}
+.team ul{list-style:none;margin-top:6px}
+.team li{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.08)}
+.team .ph{width:32px;height:32px;border-radius:50%;flex:none;background:#05101f center top/cover;border:2px solid var(--c);overflow:hidden;color:#6fa3c9}
+.team .ph svg{width:100%;height:100%}
+.team .nm{font-family:'Bebas Neue';font-size:21px;letter-spacing:.05em;text-transform:uppercase;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team .ps{font-size:12px;letter-spacing:.1em;color:#9fb3c8}
+.note{font-size:12px;color:#9fb3c8;letter-spacing:.05em;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <small>Vôlei de areia</small>
+  <h1>GESTÃO DA <span>PELADA</span></h1>
+</header>
+<div class="bar"></div>
+<div class="wrap" id="main"><div class="msg">Carregando...</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/app.js?v=6"></script>
+<script>
+const CORES = ['#00e5ff', '#b6ff00', '#ff9f1c', '#ff4d8d', '#a78bfa', '#2dd4bf', '#facc15', '#f87171'];
+const TIPOS = ['Levantador', 'Atacante', 'Recepção', 'Versátil'];
+let jogadores = [], tamanho = 4, resultado = null;
+
+const ovrDe = t => (t == null ? null : Math.round(Number(t) / 5 * 19.8));
+const embaralhar = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+// ---------- sorteio balanceado ----------
+function sortear(jogs, size) {
+  const n = jogs.length;
+  const k = Math.max(2, Math.round(n / size));
+  const avaliados = jogs.filter(p => p.total != null).map(p => Number(p.total));
+  const media = avaliados.length ? avaliados.reduce((a, b) => a + b, 0) / avaliados.length : 15;
+  const val = p => (p.total != null ? Number(p.total) : media);
+  const gm = jogs.reduce((s, p) => s + val(p), 0) / n;
+
+  const custo = teams => {
+    let c = 0;
+    teams.forEach(t => { const m = t.reduce((s, p) => s + val(p), 0) / t.length; c += (m - gm) ** 2; });
+    TIPOS.forEach(tp => {
+      const cnt = teams.map(t => t.filter(p => p.caracteristica === tp).length);
+      const mc = cnt.reduce((a, b) => a + b, 0) / k;
+      c += 0.6 * cnt.reduce((s, x) => s + (x - mc) ** 2, 0) / k;
+    });
+    return c;
+  };
+
+  const resultados = [];
+  for (let r = 0; r < 25; r++) {
+    const arr = embaralhar([...jogs]);
+    const teams = Array.from({ length: k }, () => []);
+    arr.forEach((p, i) => teams[i % k].push(p));
+    let cost = custo(teams);
+    for (let it = 0; it < 1500; it++) {
+      const a = Math.floor(Math.random() * k);
+      let b = Math.floor(Math.random() * k); if (a === b) continue;
+      const i = Math.floor(Math.random() * teams[a].length), j = Math.floor(Math.random() * teams[b].length);
+      [teams[a][i], teams[b][j]] = [teams[b][j], teams[a][i]];
+      const c2 = custo(teams);
+      if (c2 <= cost) cost = c2; else [teams[a][i], teams[b][j]] = [teams[b][j], teams[a][i]];
+    }
+    resultados.push({ teams: teams.map(t => [...t]), cost });
+  }
+  const min = Math.min(...resultados.map(r => r.cost));
+  const bons = resultados.filter(r => r.cost <= min + 0.3); // varia entre sorteios parecidos
+  return bons[Math.floor(Math.random() * bons.length)].teams;
+}
+
+// ---------- tela ----------
+const vao = () => jogadores.filter(p => p.vai_jogar);
+const ordenar = a => a.sort((x, y) => nomeExibido(x).localeCompare(nomeExibido(y), 'pt-BR'));
+
+function desenhar() {
+  const main = document.getElementById('main');
+  const n = vao().length;
+  const k = Math.max(2, Math.round(n / tamanho));
+  main.innerHTML = `
+    <h2>QUEM VAI <span>JOGAR</span></h2>
+    <div class="sub"><b id="cnt">${n}</b> de ${jogadores.length} confirmados</div>
+    <div class="row2"><button class="mini" id="todos">Marcar todos</button><button class="mini" id="limpar">Limpar</button></div>
+    <div class="chips" id="chips">${jogadores.map(p => `<button class="ck ${p.vai_jogar ? 'on' : ''}" data-id="${esc(p.id)}">${esc(nomeExibido(p))}</button>`).join('')}</div>
+
+    <h2>JOGADORES POR <span>TIME</span></h2>
+    <div class="step"><button id="menos">−</button><b>${tamanho}</b><button id="mais">+</button>
+      <small>${n >= 4 ? `${k} times` : 'poucos jogadores'}</small></div>
+
+    <button class="go" id="sortear" ${n < 4 ? 'disabled' : ''}>${resultado ? 'SORTEAR DE NOVO' : 'SORTEAR TIMES'}</button>
+    <div id="res"></div>`;
+
+  document.getElementById('chips').onclick = async e => {
+    const b = e.target.closest('.ck'); if (!b) return;
+    const p = jogadores.find(x => x.id === b.dataset.id);
+    p.vai_jogar = !p.vai_jogar; resultado = null;
+    b.classList.toggle('on', p.vai_jogar);
+    const { error } = await sb.from('players').update({ vai_jogar: p.vai_jogar }).eq('id', p.id);
+    if (error) { p.vai_jogar = !p.vai_jogar; b.classList.toggle('on', p.vai_jogar); alert('Erro ao salvar. Tente de novo.'); }
+    desenhar();
+  };
+  const marcarTodos = async v => {
+    jogadores.forEach(p => p.vai_jogar = v); resultado = null; desenhar();
+    await sb.from('players').update({ vai_jogar: v }).in('id', jogadores.map(p => p.id));
+  };
+  document.getElementById('todos').onclick = () => marcarTodos(true);
+  document.getElementById('limpar').onclick = () => marcarTodos(false);
+  document.getElementById('menos').onclick = () => { tamanho = Math.max(2, tamanho - 1); resultado = null; desenhar(); };
+  document.getElementById('mais').onclick = () => { tamanho = Math.min(12, tamanho + 1); resultado = null; desenhar(); };
+  document.getElementById('sortear').onclick = () => { resultado = sortear(vao(), tamanho); mostrar(); };
+  if (resultado) mostrar();
+}
+
+function mostrar() {
+  const res = document.getElementById('res');
+  const btn = document.getElementById('sortear'); if (btn) btn.textContent = 'SORTEAR DE NOVO';
+  res.innerHTML = `<div class="teams">${resultado.map((t, i) => {
+    const vs = t.map(p => ovrDe(p.total)).filter(v => v != null);
+    const med = vs.length ? Math.round(vs.reduce((a, b) => a + b, 0) / vs.length) : '--';
+    return `<div class="team" style="--c:${CORES[i % CORES.length]}"><h3>TIME ${i + 1}<small>MÉDIA ${med}</small></h3><ul>${
+      t.map(p => `<li><div class="ph" ${p.foto_url ? `style="background-image:url('${esc(p.foto_url)}')"` : ''}>${p.foto_url ? '' : SIL}</div>
+        <span class="nm">${esc(nomeExibido(p))}</span><span class="ps">${esc((POS[p.caracteristica] || ''))}</span></li>`).join('')}</ul></div>`;
+  }).join('')}</div>
+  <div class="note">Quem ainda não foi avaliado entra com a nota média do grupo.</div>`;
+  res.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+(async () => {
+  const { data, error } = await sb.from('player_stats').select('id,nome,vulgo,foto_url,caracteristica,vai_jogar,total,avaliacoes');
+  if (error) { document.getElementById('main').innerHTML = '<div class="msg">Erro ao carregar. Tente de novo.</div>'; return; }
+  jogadores = ordenar(data);
+  desenhar();
+})();
+</script>
+</body>
+</html>
