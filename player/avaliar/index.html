@@ -45,7 +45,7 @@
 <div class="wrap" id="main"><div class="msg">Carregando...</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../assets/app.js?v=6"></script>
+<script src="../../assets/app.js?v=7"></script>
 <script>
 const HAB = [['ataque', 'Ataque'], ['recepcao', 'Recepção'], ['levantamento', 'Levantamento'], ['saque', 'Saque'], ['mobilidade', 'Mobilidade']];
 const DESC = {
@@ -83,9 +83,9 @@ const DESC = {
 
 (async () => {
   const main = document.getElementById('main');
-  let me = null;
-  try { me = localStorage.getItem('jogador_id'); } catch (_) {}
+  const me = meuId();
   if (!me) { location.replace('../../'); return; }
+  document.querySelector('a.back').href = '../?id=' + encodeURIComponent(me);
 
   const [pl, mine] = await Promise.all([
     sb.from('players').select('id,nome,vulgo,foto_url'),

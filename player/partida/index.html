@@ -36,13 +36,13 @@
 <div class="wrap" id="main"><div class="msg">Carregando...</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../assets/app.js?v=6"></script>
+<script src="../../assets/app.js?v=7"></script>
 <script>
 const CORES = ['#00e5ff', '#b6ff00', '#ff9f1c', '#ff4d8d', '#a78bfa', '#2dd4bf', '#facc15', '#f87171'];
 (async () => {
   const main = document.getElementById('main');
-  let me = null;
-  try { me = localStorage.getItem('jogador_id'); } catch (_) {}
+  const me = meuId();
+  if (me) document.querySelector('a.back').href = '../?id=' + encodeURIComponent(me);
 
   const [pt, pl] = await Promise.all([
     sb.from('partida').select('times,atualizado').eq('id', 1).maybeSingle(),

@@ -16,7 +16,7 @@
 <div class="list" id="list"><div class="msg" style="grid-column:1/-1">Carregando...</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/app.js"></script>
+<script src="assets/app.js?v=7"></script>
 <script>
 (async () => {
   const list = document.getElementById('list');
@@ -26,7 +26,7 @@
   list.innerHTML = data.map(p => `<button class="pick" data-id="${esc(p.id)}"><span>${esc(nomeExibido(p))}</span></button>`).join('');
   list.addEventListener('click', e => {
     const b = e.target.closest('.pick'); if (!b) return;
-    try { localStorage.setItem('jogador_id', b.dataset.id); } catch (_) {}
+    escolherId(b.dataset.id);
     location.href = 'player/?id=' + encodeURIComponent(b.dataset.id);
   });
 })();

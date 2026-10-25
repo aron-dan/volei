@@ -35,20 +35,19 @@
 <div class="center" id="main"><div class="msg">Carregando...</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../assets/app.js?v=6"></script>
-<script src="../assets/foto.js?v=6"></script>
+<script src="../assets/app.js?v=7"></script>
+<script src="../assets/foto.js?v=7"></script>
 <script>
 const CARACTERISTICAS = ['Atacante', 'Levantador', 'Versátil', 'Recepção'];
 
 function trocarJogador() {
-  try { localStorage.removeItem('jogador_id'); } catch (_) {}
+  limparId();
   location.href = '../';
 }
 
 (async () => {
   const main = document.getElementById('main');
-  let id = new URLSearchParams(location.search).get('id');
-  try { id = id || localStorage.getItem('jogador_id'); } catch (_) {}
+  const id = meuId();
   if (!id) { location.replace('../'); return; }
 
   async function carregar() {
@@ -81,8 +80,8 @@ function trocarJogador() {
         <button class="save" id="salvar">Salvar</button>
         <div id="ok"></div>
       </div>
-      <a class="save" href="partida/" style="display:block;text-align:center;text-decoration:none;max-width:310px;margin-top:30px">Próxima partida</a>
-      <a class="save" href="avaliar/" style="display:block;text-align:center;text-decoration:none;max-width:310px;margin-top:14px;background:var(--neon)">Avaliar a galera</a>
+      <a class="save" href="partida/?id=${esc(id)}"style="display:block;text-align:center;text-decoration:none;max-width:310px;margin-top:30px">Próxima partida</a>
+      <a class="save" href="avaliar/?id=${esc(id)}"style="display:block;text-align:center;text-decoration:none;max-width:310px;margin-top:14px;background:var(--neon)">Avaliar a galera</a>
       <button class="link" id="trocar">Não sou eu</button>`;
 
     document.getElementById('trocar').onclick = trocarJogador;
