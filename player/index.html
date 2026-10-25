@@ -6,6 +6,22 @@
 <title>Vôlei • Minha carta</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
+<style>
+.form{width:100%;max-width:310px;margin-top:26px}
+.form label{display:block;font-size:12px;letter-spacing:.3em;color:var(--lime);text-transform:uppercase;margin:16px 0 6px}
+.form input{width:100%;font-family:'Bebas Neue';font-size:26px;letter-spacing:.05em;color:#eaffff;
+  background:#0a1f3d;border:2px solid rgba(0,229,255,.5);padding:8px 12px;outline:none;text-transform:uppercase}
+.form input:focus{border-color:var(--lime)}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chip{font-family:'Oswald';font-weight:700;letter-spacing:.1em;font-size:15px;text-transform:uppercase;color:#eaffff;
+  padding:10px 6px;background:#0a1f3d;border:2px solid rgba(0,229,255,.35);cursor:pointer}
+.chip.on{background:var(--neon);color:#001018;border-color:var(--neon)}
+.save{width:100%;margin-top:22px;font-family:'Bebas Neue';font-size:28px;letter-spacing:.08em;color:#001018;
+  background:var(--lime);border:0;padding:10px;cursor:pointer;transform:skewX(-8deg)}
+.save:disabled{opacity:.6}
+#ok{text-align:center;margin-top:10px;height:20px;letter-spacing:.1em;color:var(--lime)}
+#ok.err{color:#ff6b6b}
+</style>
 </head>
 <body>
 <header>
@@ -18,20 +34,70 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../assets/app.js"></script>
 <script>
+const CARACTERISTICAS = ['Atacante', 'Levantador', 'Versátil', 'Recepção'];
+
+function trocarJogador() {
+  try { localStorage.removeItem('jogador_id'); } catch (_) {}
+  location.href = '../';
+}
+
 (async () => {
   const main = document.getElementById('main');
   let id = new URLSearchParams(location.search).get('id');
   try { id = id || localStorage.getItem('jogador_id'); } catch (_) {}
   if (!id) { location.replace('../'); return; }
-  const { data, error } = await sb.from('player_stats').select('*').eq('id', id).maybeSingle();
-  if (error || !data) { main.innerHTML = '<div class="msg">Jogador não encontrado.</div><button class="link" id="trocar">Escolher outro</button>'; }
-  else {
-    main.innerHTML = `<div class="hello">Fala, <span>${esc(nomeExibido(data))}</span>!</div>${cardHTML(data)}<button class="link" id="trocar">Não sou eu</button>`;
+
+  async function carregar() {
+    const { data, error } = await sb.from('player_stats').select('*').eq('id', id).maybeSingle();
+    return error ? null : data;
   }
-  document.getElementById('trocar').onclick = () => {
-    try { localStorage.removeItem('jogador_id'); } catch (_) {}
-    location.href = '../';
-  };
+
+  let p = await carregar();
+  if (!p) {
+    main.innerHTML = '<div class="msg">Jogador não encontrado.</div><button class="link" id="trocar">Escolher outro</button>';
+    document.getElementById('trocar').onclick = trocarJogador;
+    return;
+  }
+
+  let carac = p.caracteristica || null;
+
+  function desenhar() {
+    main.innerHTML = `
+      <div class="hello">Fala, <span>${esc(nomeExibido(p))}</span>!</div>
+      ${cardHTML(p)}
+      <div class="form">
+        <label>Seu vulgo</label>
+        <input id="vulgo" maxlength="20" value="${esc(p.vulgo || '')}" placeholder="${esc(p.nome || '')}">
+        <label>Sua característica</label>
+        <div class="chips">${CARACTERISTICAS.map(c => `<button type="button" class="chip ${c === carac ? 'on' : ''}" data-c="${c}">${c}</button>`).join('')}</div>
+        <button class="save" id="salvar">Salvar</button>
+        <div id="ok"></div>
+      </div>
+      <button class="link" id="trocar">Não sou eu</button>`;
+
+    document.getElementById('trocar').onclick = trocarJogador;
+    document.querySelectorAll('.chip').forEach(b => b.onclick = () => {
+      carac = b.dataset.c;
+      document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b));
+    });
+    document.getElementById('salvar').onclick = salvar;
+  }
+
+  async function salvar() {
+    const btn = document.getElementById('salvar');
+    const ok = document.getElementById('ok');
+    btn.disabled = true; ok.className = ''; ok.textContent = 'Salvando...';
+    const vulgo = document.getElementById('vulgo').value.trim() || null;
+    const { error } = await sb.from('players').update({ vulgo, caracteristica: carac }).eq('id', id);
+    if (error) { btn.disabled = false; ok.className = 'err'; ok.textContent = 'Erro ao salvar. Tente de novo.'; return; }
+    p = (await carregar()) || p;
+    desenhar();
+    const ok2 = document.getElementById('ok');
+    ok2.textContent = 'Salvo!';
+    setTimeout(() => { ok2.textContent = ''; }, 2500);
+  }
+
+  desenhar();
 })();
 </script>
 </body>
