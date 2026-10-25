@@ -95,16 +95,16 @@ function trocarJogador() {
     fi.onchange = async () => {
       const f = fi.files[0]; if (!f) return;
       const fs = document.getElementById('fotoStatus');
-      fs.className = ''; fs.textContent = 'Procurando seu rosto...';
+      fs.className = ''; fs.textContent = 'Abrindo foto...';
       try {
-        const r = await recortarFoto(f);
+        const blob = await abrirRecorte(f);
+        fi.value = '';
+        if (!blob) { fs.textContent = ''; return; }
         fs.textContent = 'Enviando...';
-        await enviarFoto(sb, id, r.blob);
+        await enviarFoto(sb, id, blob);
         p = (await carregar()) || p;
         desenhar();
-        document.getElementById('fotoStatus').textContent = r.achou
-          ? 'Foto salva!'
-          : 'Não achei rosto, centralizei a foto. Tente outra se não ficou boa.';
+        document.getElementById('fotoStatus').textContent = 'Foto salva!';
       } catch (e) {
         console.error(e);
         fs.className = 'err'; fs.textContent = 'Erro com a foto. Tente outra.';
