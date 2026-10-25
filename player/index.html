@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vôlei • Minha carta</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<header>
+  <small>Vôlei de areia</small>
+  <h1>MINHA <span>CARTA</span></h1>
+</header>
+<div class="bar"></div>
+<div class="center" id="main"><div class="msg">Carregando...</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/app.js"></script>
+<script>
+(async () => {
+  const main = document.getElementById('main');
+  let id = new URLSearchParams(location.search).get('id');
+  try { id = id || localStorage.getItem('jogador_id'); } catch (_) {}
+  if (!id) { location.replace('../'); return; }
+  const { data, error } = await sb.from('player_stats').select('*').eq('id', id).maybeSingle();
+  if (error || !data) { main.innerHTML = '<div class="msg">Jogador não encontrado.</div><button class="link" id="trocar">Escolher outro</button>'; }
+  else {
+    main.innerHTML = `<div class="hello">Fala, <span>${esc(nomeExibido(data))}</span>!</div>${cardHTML(data)}<button class="link" id="trocar">Não sou eu</button>`;
+  }
+  document.getElementById('trocar').onclick = () => {
+    try { localStorage.removeItem('jogador_id'); } catch (_) {}
+    location.href = '../';
+  };
+})();
+</script>
+</body>
+</html>

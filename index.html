@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vôlei</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header>
+  <small>Vôlei de areia</small>
+  <h1>QUEM É <span>VOCÊ?</span></h1>
+</header>
+<div class="bar"></div>
+<div class="list" id="list"><div class="msg" style="grid-column:1/-1">Carregando...</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  const list = document.getElementById('list');
+  const { data, error } = await sb.from('players').select('id,nome,vulgo');
+  if (error) { list.innerHTML = '<div class="msg" style="grid-column:1/-1">Erro ao carregar. Tente de novo.</div>'; return; }
+  data.sort((a, b) => nomeExibido(a).localeCompare(nomeExibido(b), 'pt-BR'));
+  list.innerHTML = data.map(p => `<button class="pick" data-id="${esc(p.id)}"><span>${esc(nomeExibido(p))}</span></button>`).join('');
+  list.addEventListener('click', e => {
+    const b = e.target.closest('.pick'); if (!b) return;
+    try { localStorage.setItem('jogador_id', b.dataset.id); } catch (_) {}
+    location.href = 'player/?id=' + encodeURIComponent(b.dataset.id);
+  });
+})();
+</script>
+</body>
+</html>
