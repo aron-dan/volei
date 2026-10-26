@@ -207,7 +207,7 @@ function mostrar() {
     const med = vs.length ? Math.round(vs.reduce((a, b) => a + b, 0) / vs.length) : '--';
     return `<div class="team" style="--c:${CORES[i % CORES.length]}"><h3>TIME ${i + 1}<small>MÉDIA ${med}</small></h3><div class="cards">${t.map(p => cardMini(p, .5)).join('')}</div></div>`;
   }).join('')}</div>
-  <div class="note">Quem ainda não foi avaliado entra com a nota média do grupo.</div>
+  <div class="note">Quem ainda não foi avaliado entra com nota 3 em todas as habilidades.</div>
   <button class="go" id="publicar">PUBLICAR PARA A GALERA</button><div class="note" id="pubmsg"></div>`;
   document.getElementById('publicar').onclick = async () => {
     const b = document.getElementById('publicar'), m = document.getElementById('pubmsg');
