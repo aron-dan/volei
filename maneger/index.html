@@ -59,6 +59,7 @@ h2 span{color:var(--lime)}
 const CORES = ['#00e5ff', '#b6ff00', '#ff9f1c', '#ff4d8d', '#a78bfa', '#2dd4bf', '#facc15', '#f87171'];
 const TIPOS = ['Levantador', 'Atacante', 'Recepção', 'Versátil'];
 let jogadores = [], tamanho = 4, resultado = null, editando = null;
+let pinReset = '0000'; // PIN temporário que o botão "Reset PIN" grava (1.0.1-alpha)
 
 async function recarregar() {
   const { data, error } = await sb.from('player_stats').select('*');
@@ -71,10 +72,11 @@ function cadastroHTML() {
   return `<h2>CADASTRO DE <span>JOGADORES</span></h2>
     <div class="sub">Adicione, edite ou remova jogadores.</div>
     <div class="cad"><input id="nVulgo" maxlength="20" placeholder="Vulgo"><input id="nNome" maxlength="40" placeholder="Nome"><button class="mini" id="add">Adicionar</button></div>
+    <div class="cad" style="grid-template-columns:110px 1fr;align-items:center"><input id="pinReset" maxlength="4" inputmode="numeric" value="${esc(pinReset)}" placeholder="PIN de reset"><small>PIN temporário usado no botão Reset PIN</small></div>
     <div class="note" id="cmsg"></div>
     <div class="cadlist" id="cadlist">${jogadores.map(p => p.id === editando
       ? `<div class="crow"><input class="ev" maxlength="20" value="${esc(p.vulgo || '')}" placeholder="Vulgo"><input class="en" maxlength="40" value="${esc(p.nome || '')}" placeholder="Nome">${bt('salvar', p.id, 'Salvar')}${bt('cancelar', p.id, '×')}</div>`
-      : `<div class="crow"><span class="cn">${esc(nomeExibido(p))}<small>${esc(p.vulgo && p.nome ? p.nome : '')}</small></span>${bt('editar', p.id, 'Editar')}${bt('remover', p.id, 'Remover', 'red')}</div>`).join('')}</div>`;
+      : `<div class="crow"><span class="cn">${esc(nomeExibido(p))}<small>${esc(p.vulgo && p.nome ? p.nome : '')}</small></span>${bt('editar', p.id, 'Editar')}${bt('resetpin', p.id, 'Reset PIN')}${bt('remover', p.id, 'Remover', 'red')}</div>`).join('')}</div>`;
 }
 
 function ligarCadastro() {
@@ -83,16 +85,25 @@ function ligarCadastro() {
     const vulgo = document.getElementById('nVulgo').value.trim() || null;
     const nome = document.getElementById('nNome').value.trim() || null;
     if (!vulgo && !nome) { msg('Preencha o vulgo ou o nome.'); return; }
-    const { error } = await sb.from('players').insert({ vulgo, nome, vai_jogar: false });
+    const { data: novo, error } = await sb.from('players').insert({ vulgo, nome, vai_jogar: false }).select('id').single();
     if (error) { msg('Erro ao adicionar. Tente de novo.'); return; }
+    // jogador novo ganha a linha na tabela pins, com o PIN de reset e "não definido"
+    await sb.from('pins').upsert({ player_id: novo.id, pin: pinReset, definido: false });
     await recarregar();
     const m = document.getElementById('cmsg'); if (m) m.textContent = 'Jogador adicionado!';
   };
+  document.getElementById('pinReset').oninput = e => { e.target.value = e.target.value.replace(/\D/g, ''); pinReset = e.target.value; };
   document.getElementById('cadlist').onclick = async e => {
     const b = e.target.closest('button[data-a]'); if (!b) return;
     const p = jogadores.find(x => x.id === b.dataset.id), a = b.dataset.a;
     if (a === 'editar') { editando = p.id; desenhar(); }
     else if (a === 'cancelar') { editando = null; desenhar(); }
+    else if (a === 'resetpin') {
+      if (!pinValido(pinReset)) { msg('O PIN de reset precisa ter 4 números.'); return; }
+      if (!confirm(`Resetar o PIN de ${nomeExibido(p)} para ${pinReset}? Ele terá que criar um novo ao entrar.`)) return;
+      const { error } = await sb.from('pins').upsert({ player_id: p.id, pin: pinReset, definido: false });
+      msg(error ? 'Erro ao resetar. Tente de novo.' : `PIN de ${nomeExibido(p)} resetado para ${pinReset}.`);
+    }
     else if (a === 'salvar') {
       const row = b.closest('.crow');
       const vulgo = row.querySelector('.ev').value.trim() || null, nome = row.querySelector('.en').value.trim() || null;
