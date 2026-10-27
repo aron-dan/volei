@@ -21,7 +21,7 @@ Patch de segurança. Objetivo: ninguém cair na conta de outra pessoa sem querer
 
 > O PIN **não é segurança de verdade**. Uma autenticação real está nos planos para versões futuras.
 
-## 1.0.0-alpha
+## 1.0.0-alpha — 25/10/2026
 
 Primeira versão completa.
 
