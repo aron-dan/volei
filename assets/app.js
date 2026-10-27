@@ -6,18 +6,28 @@ const POS = { Atacante: 'ATA', Levantador: 'LEV', 'Versátil': 'VER', 'Recepçã
 const SIL = '<svg viewBox="0 0 100 100" fill="currentColor"><circle cx="50" cy="32" r="17"/><path d="M12 100c0-26 17-42 38-42s38 16 38 42z"/></svg>';
 
 // Quem sou eu: o id na URL manda; depois a aba (sessionStorage); por último o último escolhido no navegador.
-// Assim duas pessoas testando no mesmo navegador não trocam de perfil uma da outra.
+// 1.0.1-alpha: esse id só vale se passou pelo PIN. A prova é "jogador_ok" (gravada em escolherId, depois do PIN).
+// Sem a prova, meuId() devolve null e a página manda a pessoa de volta para a tela de entrada.
 function meuId() {
   let v = new URLSearchParams(location.search).get('id');
-  try { v = v || sessionStorage.getItem('jogador_id') || localStorage.getItem('jogador_id'); } catch (_) {}
-  if (v) { try { sessionStorage.setItem('jogador_id', v); } catch (_) {} }
+  try {
+    v = v || sessionStorage.getItem('jogador_id') || localStorage.getItem('jogador_id');
+    const liberado = [sessionStorage.getItem('jogador_ok'), localStorage.getItem('jogador_ok')];
+    if (!v || !liberado.includes(v)) return null;
+    sessionStorage.setItem('jogador_id', v); sessionStorage.setItem('jogador_ok', v);
+  } catch (_) { return null; }
   return v;
 }
 function escolherId(v) {
-  try { sessionStorage.setItem('jogador_id', v); localStorage.setItem('jogador_id', v); } catch (_) {}
+  try {
+    sessionStorage.setItem('jogador_id', v); localStorage.setItem('jogador_id', v);
+    sessionStorage.setItem('jogador_ok', v); localStorage.setItem('jogador_ok', v);
+  } catch (_) {}
 }
 function limparId() {
-  try { sessionStorage.removeItem('jogador_id'); localStorage.removeItem('jogador_id'); } catch (_) {}
+  try {
+    ['jogador_id', 'jogador_ok'].forEach(k => { sessionStorage.removeItem(k); localStorage.removeItem(k); });
+  } catch (_) {}
 }
 
 // ---- PIN (1.0.1-alpha) ----
