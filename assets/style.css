@@ -73,6 +73,8 @@ header h1 span{color:var(--neon)}
 .pick.cd{transform:none;border:0;background:none;padding:0}
 .pick.cd:active{box-shadow:none;filter:brightness(1.35)}
 
+.ver{text-align:center;color:#5d7289;font-size:12px;letter-spacing:.2em;margin-top:30px}
+
 /* tela de PIN (1.0.1-alpha) */
 .pinbox{position:fixed;inset:0;background:rgba(5,7,13,.94);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
 .pinbox.on{display:flex}

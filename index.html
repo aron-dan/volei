@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vôlei</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=10">
+<link rel="stylesheet" href="assets/style.css?v=11">
 </head>
 <body>
 <header>
@@ -23,10 +23,13 @@
   <button class="link" id="pincancel">Voltar</button>
 </div></div>
 
+<div class="ver" id="ver"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/app.js?v=10"></script>
+<script src="assets/app.js?v=11"></script>
 <script>
 (async () => {
+  document.getElementById('ver').textContent = 'v' + VERSAO;
   const list = document.getElementById('list');
   const { data, error } = await sb.from('player_stats').select('*');
   if (error) { list.innerHTML = '<div class="msg" style="grid-column:1/-1">Erro ao carregar. Tente de novo.</div>'; return; }

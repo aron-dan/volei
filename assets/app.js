@@ -2,6 +2,7 @@ const SUPABASE_URL = 'https://qkuavmzpfaljksqyqibb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable__c4rzRaPbfFky4G1QNtaVw_ISD3Y_e-';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const VERSAO = '1.0.1-alpha'; // mude aqui a cada versão nova
 const POS = { Atacante: 'ATA', Levantador: 'LEV', 'Versátil': 'VER', 'Recepção': 'REC' };
 const SIL = '<svg viewBox="0 0 100 100" fill="currentColor"><circle cx="50" cy="32" r="17"/><path d="M12 100c0-26 17-42 38-42s38 16 38 42z"/></svg>';
 
