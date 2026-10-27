@@ -20,6 +20,23 @@ function limparId() {
   try { sessionStorage.removeItem('jogador_id'); localStorage.removeItem('jogador_id'); } catch (_) {}
 }
 
+// ---- PIN (1.0.1-alpha) ----
+// 4 dígitos, tabela "pins". Não é segurança real: só evita entrar na conta errada sem querer.
+const pinValido = p => /^\d{4}$/.test(p);
+
+// Pergunta ao banco: "existe linha deste jogador com este PIN?". Não baixa o PIN.
+// Retorna null (PIN errado) ou { definido: true/false }.
+async function checarPin(id, pin) {
+  const { data } = await sb.from('pins').select('definido').eq('player_id', id).eq('pin', pin).maybeSingle();
+  return data;
+}
+
+// Grava o PIN novo e marca como definido pelo jogador. Retorna true/false.
+async function trocarPin(id, novo) {
+  const { error } = await sb.from('pins').update({ pin: novo, definido: true }).eq('player_id', id);
+  return !error;
+}
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nomeExibido = p => p.vulgo || p.nome || '???';
 // nota média (1 a 5) -> escala 0 a 99 estilo FIFA

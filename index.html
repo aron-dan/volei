@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vôlei</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=9">
+<link rel="stylesheet" href="assets/style.css?v=10">
 </head>
 <body>
 <header>
@@ -15,8 +15,16 @@
 <div class="bar"></div>
 <div class="list cards" id="list"><div class="msg" style="grid-column:1/-1">Carregando...</div></div>
 
+<div class="pinbox" id="pinbox"><div class="pinin">
+  <h2 id="pintit">DIGITE SEU PIN</h2>
+  <p id="pinmsg"></p>
+  <input id="pininp" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+  <button class="pinbtn" id="pinok">ENTRAR</button>
+  <button class="link" id="pincancel">Voltar</button>
+</div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/app.js?v=8"></script>
+<script src="assets/app.js?v=9"></script>
 <script>
 (async () => {
   const list = document.getElementById('list');
@@ -24,12 +32,54 @@
   if (error) { list.innerHTML = '<div class="msg" style="grid-column:1/-1">Erro ao carregar. Tente de novo.</div>'; return; }
   data.sort((a, b) => nomeExibido(a).localeCompare(nomeExibido(b), 'pt-BR'));
   list.innerHTML = data.map(p => `<button class="pick cd" data-id="${esc(p.id)}">${cardMini(p, .4)}</button>`).join('');
+
+  // ---- tela de PIN ----
+  // modo: 'entrar' (digita o PIN) -> 'novo' (primeiro acesso ou reset) -> 'confirmar' (repete o novo)
+  const $ = id => document.getElementById(id);
+  const box = $('pinbox'), tit = $('pintit'), msg = $('pinmsg'), inp = $('pininp'), ok = $('pinok');
+  let alvo = null, modo = 'entrar', atual = '', novo = '';
+
+  function mostrar(m, texto) {
+    modo = m; inp.value = ''; msg.textContent = texto || '';
+    tit.textContent = m === 'entrar' ? 'DIGITE SEU PIN' : m === 'novo' ? 'CRIE SEU PIN' : 'CONFIRME O PIN';
+    box.classList.add('on'); inp.focus();
+  }
+  function entrar() {
+    escolherId(alvo);
+    location.href = 'player/?id=' + encodeURIComponent(alvo);
+  }
+
   list.addEventListener('click', e => {
     const b = e.target.closest('.pick'); if (!b) return;
-    escolherId(b.dataset.id);
-    location.href = 'player/?id=' + encodeURIComponent(b.dataset.id);
+    alvo = b.dataset.id;
+    const p = data.find(x => x.id === alvo);
+    mostrar('entrar', nomeExibido(p));
   });
+  $('pincancel').onclick = () => { box.classList.remove('on'); alvo = null; };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok.click(); });
+
+  ok.onclick = async () => {
+    const v = inp.value;
+    if (!pinValido(v)) { msg.textContent = 'Use 4 números'; return; }
+    ok.disabled = true;
+    try {
+      if (modo === 'entrar') {
+        const r = await checarPin(alvo, v);
+        if (!r) { msg.textContent = 'PIN errado'; inp.value = ''; }
+        else if (r.definido) entrar();
+        else { atual = v; mostrar('novo', 'Primeiro acesso: escolha um PIN novo'); }
+      } else if (modo === 'novo') {
+        if (v === atual) { msg.textContent = 'Escolha um PIN diferente do anterior'; inp.value = ''; return; }
+        novo = v; mostrar('confirmar', 'Digite de novo para confirmar');
+      } else {
+        if (v !== novo) { mostrar('novo', 'Não conferiu. Crie de novo'); return; }
+        if (await trocarPin(alvo, v)) entrar(); else msg.textContent = 'Erro ao salvar. Tente de novo';
+      }
+    } finally { ok.disabled = false; }
+  };
 })();
 </script>
+
+
 </body>
 </html>
